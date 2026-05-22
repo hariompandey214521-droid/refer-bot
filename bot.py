@@ -1,13 +1,100 @@
 import telebot
+from telebot import types
+import sqlite3
 
-TOKEN = "8744679992:AAHdzUgtkTuwXn1ltLNUn9zY4Sd9SVqbYBM"
+BOT_TOKEN = "8744679992:AAHdzUgtkTuwXn1ltLNUn9zY4Sd9SVqbYBM"
+CHANNEL = "theom4u"
 
-bot = telebot.TeleBot(TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN)
+
+conn = sqlite3.connect("users.db", check_same_thread=False)
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    referrals INTEGER DEFAULT 0,
+    points INTEGER DEFAULT 0
+)
+""")
+conn.commit()
+
+def add_user(user_id):
+    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        cursor.execute(
+            "INSERT INTO users (user_id, referrals, points) VALUES (?, ?, ?)",
+            (user_id, 0, 0)
+        )
+        conn.commit()
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "🔥 Bot Working Hai")
+    user_id = message.from_user.id
+    add_user(user_id)
+
+    ref_link = f"https://t.me/{bot.get_me().username}?start={user_id}"
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add("👥 Referral", "💰 Wallet")
+    markup.add("🏆 Leaderboard")
+
+    bot.send_message(
+        message.chat.id,
+        f"🔥 Welcome {message.from_user.first_name}\n\n"
+        f"📢 Join Channel: @{CHANNEL}\n\n"
+        f"🔗 Your Referral Link:\n{ref_link}",
+        reply_markup=markup
+    )
+
+@bot.message_handler(func=lambda m: m.text == "👥 Referral")
+def referral(message):
+    user_id = message.from_user.id
+
+    cursor.execute(
+        "SELECT referrals FROM users WHERE user_id=?",
+        (user_id,)
+    )
+
+    referrals = cursor.fetchone()[0]
+
+    bot.send_message(
+        message.chat.id,
+        f"👥 Total Referrals: {referrals}"
+    )
+
+@bot.message_handler(func=lambda m: m.text == "💰 Wallet")
+def wallet(message):
+    user_id = message.from_user.id
+
+    cursor.execute(
+        "SELECT points FROM users WHERE user_id=?",
+        (user_id,)
+    )
+
+    points = cursor.fetchone()[0]
+
+    bot.send_message(
+        message.chat.id,
+        f"💰 Your Points: {points}"
+    )
+
+@bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
+def leaderboard(message):
+    cursor.execute(
+        "SELECT user_id, referrals FROM users ORDER BY referrals DESC LIMIT 10"
+    )
+
+    users = cursor.fetchall()
+
+    text = "🏆 Top Referrers\n\n"
+
+    for i, user in enumerate(users, start=1):
+        text += f"{i}. {user[0]} → {user[1]} referrals\n"
+
+    bot.send_message(message.chat.id, text)
 
 print("Bot Running...")
-
 bot.infinity_polling()
