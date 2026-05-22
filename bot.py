@@ -1,13 +1,13 @@
-import telebot
+                import telebot
 from telebot import types
 import sqlite3
 
-BOT_TOKEN = "8744679992:AAHdzUgtkTuwXn1ltLNUn9zY4Sd9SVqbYBM"
+TOKEN = "8744679992:AAHdzUgtkTuwXn1ltLNUn9zY4Sd9SVqbYBM"
 CHANNEL = "theom4u"
 
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(TOKEN)
 
-conn = sqlite3.connect("users.db", check_same_thread=False)
+conn = sqlite3.connect("database.db", check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -34,6 +34,7 @@ def add_user(user_id):
             "INSERT INTO users (user_id, referrals, points) VALUES (?, ?, ?)",
             (user_id, 0, 0)
         )
+
         conn.commit()
 
 
@@ -99,7 +100,12 @@ def referral(message):
         (user_id,)
     )
 
-    referrals = cursor.fetchone()[0]
+    data = cursor.fetchone()
+
+    if data:
+        referrals = data[0]
+    else:
+        referrals = 0
 
     bot.send_message(
         message.chat.id,
@@ -117,7 +123,12 @@ def wallet(message):
         (user_id,)
     )
 
-    points = cursor.fetchone()[0]
+    data = cursor.fetchone()
+
+    if data:
+        points = data[0]
+    else:
+        points = 0
 
     bot.send_message(
         message.chat.id,
@@ -146,5 +157,4 @@ def leaderboard(message):
 
 
 print("Bot Running...")
-
 bot.infinity_polling()
