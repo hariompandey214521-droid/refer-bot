@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 import sqlite3
 
-BOT_TOKEN = "YAHAN_APNA_BOT_TOKEN_DAL"
+BOT_TOKEN = "8744679992:AAHdzUgtkTuwXn1ltLNUn9zY4Sd9SVqbYBM"
 CHANNEL = "theom4u"
 
 bot = telebot.TeleBot(BOT_TOKEN)
